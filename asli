@@ -9,7 +9,7 @@ logging.basicConfig(
     level=logging.INFO
 )
 
-BOT_TOKEN = "717894673:DpuSTJGAv-osFFUW5fSE1jvPRSO4pcOZBxE"
+BOT_TOKEN = "TOKEN"
 BASE_URL = "https://tapi.bale.ai/bot"
 
 # بارگذاری فایل اکسل
