@@ -1,0 +1,62 @@
+import logging
+import pandas as pd
+from telegram import Update
+from telegram.ext import Application, MessageHandler, ContextTypes, filters
+
+# تنظیمات لاگ
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO
+)
+
+BOT_TOKEN = "717894673:DpuSTJGAv-osFFUW5fSE1jvPRSO4pcOZBxE"
+BASE_URL = "https://tapi.bale.ai/bot"
+
+# بارگذاری فایل اکسل
+try:
+    df = pd.read_excel("Book1.xlsx")
+    # نمایش ستون‌ها و نمونه‌ای از داده‌ها برای دیباگ
+    logging.info(f"ستون‌های دیتافریم: {df.columns.tolist()}")
+    logging.info(f"نمونه داده‌ها:\n{df.head()}")
+    logging.info(f"نوع داده ستون 'کد ملی': {df['کد ملی'].dtype}")
+except Exception as e:
+    logging.error(f"خطا در بارگذاری فایل اکسل: {e}")
+    df = pd.DataFrame()
+
+async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_input = update.message.text.strip()
+    logging.info(f"ورودی کاربر: '{user_input}' (طول: {len(user_input)})")
+
+    if df.empty:
+        await update.message.reply_text("داده‌ای برای جستجو وجود ندارد.")
+        return
+
+    # تبدیل ستون کد ملی به رشته برای مقایسه یکنواخت
+    df_debug = df.copy()
+    df_debug['کد ملی'] = df_debug['کد ملی'].astype(str).str.strip()
+
+    # همچنین ورودی کاربر را به رشته تبدیل و strip می‌کنیم
+    user_input_clean = str(user_input).strip()
+
+    logging.info(f"ورودی پاک‌شده کاربر: '{user_input_clean}'")
+    logging.info(f"مقادیر کد ملی در دیتافریم: {df_debug['کد ملی'].tolist()}")
+
+    result = df_debug[df_debug['کد ملی'] == user_input_clean]
+
+    if not result.empty:
+        row = result.iloc[0]
+        name = row.get('نام', 'ناموجود')
+        family_name = row.get('نام خانوادگی', 'ناموجود')
+        score = row.get('سنجش', 'ناموجود')
+        response_text = f"نام: {name}\nنام خانوادگی: {family_name}\nسنجش: {score}"
+        await update.message.reply_text(response_text)
+    else:
+        await update.message.reply_text("کد ملی یافت نشد.")
+
+def main():
+    application = Application.builder().token(BOT_TOKEN).base_url(BASE_URL).build()
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
+    application.run_polling()
+
+if __name__ == '__main__':
+    main()
